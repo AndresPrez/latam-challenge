@@ -1,4 +1,4 @@
-service: python-serverless
+service: latam-challenge
 frameworkVersion: '3'
 
 provider:
@@ -9,7 +9,7 @@ provider:
   # However when specifying one, the sls framework expects the bucket to exist, so make sure you create
   # one with the same name in the specified AWS region first.
   deploymentBucket:
-    name: python-serverless
+    name: latam-challenge
   
 package:
   individually: true
@@ -25,7 +25,7 @@ custom:
   pythonRequirements:
     dockerizePip: true
     layer:
-      name: python-serverless
+      name: latam-challenge
       compatibleRuntimes:
         - python3.10
 
