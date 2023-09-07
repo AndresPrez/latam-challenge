@@ -1,0 +1,53 @@
+service: python-serverless
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.10
+  region: us-east-1
+  # Specifying the bucket prevents the sls framework from creating random bucket.
+  # However when specifying one, the sls framework expects the bucket to exist, so make sure you create
+  # one with the same name in the specified AWS region first.
+  deploymentBucket:
+    name: python-serverless
+  
+package:
+  individually: true
+
+plugins:
+  # More info: https://www.serverless.com/plugins/serverless-python-requirements
+  - serverless-python-requirements
+  # A little helper plugin to run your serverless application locally.
+  - serverless-offline
+
+custom:
+  # Custom options for the 'serverless-python-requirements' plugin.
+  pythonRequirements:
+    dockerizePip: true
+    layer:
+      name: python-serverless
+      compatibleRuntimes:
+        - python3.10
+
+functions:
+  api:
+    package:
+      # Include in the bundle only the matching patterns in the project.
+      patterns:
+        - 'service/**'
+        - '!notebooks/**'
+        - '!data/**'
+        - '!package.json'
+        - '!package-lock.json'
+        - '!venv/**'
+        - '!node_modules/**'
+    handler: lambda_handler.handler
+    # Bundle the Python dependencies in a Lambda layer.
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+    # This tells the serverless framework to use AWS API Gateway v2,
+    # and how to expose the API routes.
+    events:
+      - httpApi:
+          method: any
+          path: /{any+}
