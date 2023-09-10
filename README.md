@@ -21,9 +21,9 @@
 
 2. Genera las columnas adicionales y luego expórtelas en un archivo synthetic_features.csv
 
-    Con el siguiente comando se genera el CSV <b>synthetic_features.csv</b> solictiado:
+    Con el archivo python [synthetic_features.py](./app/latam-layer/latam/synthetic_features.py) se genera el CSV <b>synthetic_features.csv</b> con las columnas específicada:
 
-    ```cd latam/service && python3 synthetic_features.py```
+    ```cd app/latam-layer/latam && python3 synthetic_features.py```
 
 3. Entrena uno o varios modelos usando los algoritmos que prefieras para estimar la probabilidad de
 atraso de un vuelo. Siéntete libre de generar variables adicionales y/o complementar con variables
