@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from datetime import datetime
-from .interfaces.flight import Flight
+from latam.service.interfaces.flight import Flight
+from latam.service.model import Model
 
 app = FastAPI(title="LATAM Challenge", debug=False, version="1.0.0")
 app.add_middleware(
@@ -19,4 +20,6 @@ async def status():
 
 @app.post(path="/predict", description="Predict flight delay", tags=["predict"])
 async def predict(flight: Flight):
-    return flight
+    model = Model()
+    model.load()
+    return model.predict(flight)
