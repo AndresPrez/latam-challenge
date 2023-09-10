@@ -59,8 +59,7 @@ SUPPORTED_ANOMALY_SORES = [
     'zscore'
 ]
 
-CATEGORICAL_ENCODER_FILE = '/Users/andresperez/GitHub/AndresPrez/latam-challenge/app/latam/data/categorical_encoder.pickle'
-# CATEGORICAL_ENCODER_FILE = 'latam/data/categorical_encoder.pickle'
+CATEGORICAL_ENCODER_FILE = '../data/categorical_encoder.pickle'
 
 TWO_PI = 2*np.pi
 
@@ -145,7 +144,7 @@ class Dataset:
         self.dataset = X
         self.is_data_clean = True
 
-    def encode(self, save = True) -> None:
+    def encode(self, encoding_file: str) -> None:
         """
         This method will be responsible for encoding the columns into a better representation.
         """
@@ -156,7 +155,7 @@ class Dataset:
         date_cols = self.get_date_features()
         newDataset = self.dataset.copy()
         # We'll need to store the encoding map so that we can use it later for the API.
-        using_saved_encoding = self.load_cat_encodings()
+        using_saved_encoding = self.load_cat_encodings(encoding_file)
         for cat_col in categoric_cols:
             # This encoding replaces the categorical value with the mean of the target for that value
             cat_col_values = categoric_cols[cat_col]
@@ -179,20 +178,22 @@ class Dataset:
         self.encoded_dataset = newDataset
 
         if not using_saved_encoding:
-            self.save_cat_encodings()
+            self.save_cat_encodings(encoding_file)
 
-    def save_cat_encodings(self) -> None:
-        with open(CATEGORICAL_ENCODER_FILE, 'wb') as file:
+    def save_cat_encodings(self, encoding_file: str = None) -> None:
+        encoding_path = encoding_file if encoding_file is not None else CATEGORICAL_ENCODER_FILE
+        with open(encoding_path, 'wb') as file:
             pickle.dump(self.cat_encoding_map, file)
 
-    def load_cat_encodings(self) -> bool:
+    def load_cat_encodings(self, encoding_file:str = None) -> bool:
         """
         Loads an existing categorical encoding map, if available.
         """
-        if Path(CATEGORICAL_ENCODER_FILE).exists():
-            with open(CATEGORICAL_ENCODER_FILE, 'rb') as file:
+        encoding_path = encoding_file if encoding_file is not None else CATEGORICAL_ENCODER_FILE
+        if Path(encoding_path).exists():
+            with open(encoding_path, 'rb') as file:
                 self.cat_encoding_map = pickle.load(file)
-            print(f"Categorical encodings loaded from {CATEGORICAL_ENCODER_FILE}")
+            print(f"Categorical encodings loaded from {encoding_path}")
             return True
         else:
             self.cat_encoding_map = {}

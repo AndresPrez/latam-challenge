@@ -38,9 +38,14 @@ externas.
     Se compararon sus modos regresión y clasificación, y dado los resultados de "Feature Importance", so optó por uno de clasficación. Además este modo le permite al modelo obviar de cierta manera la necesidad de "fitearse" para restraso menores.
 
 5. Serializa el mejor modelo seleccionado e implementa una API REST para poder predecir atrasos de nuevos vuelos.
+    XGBoost provides a metho to serialize the trained model which commited in the repo located in `latam-layer/latam/data/model.bin`.
 
 6. Automatiza el proceso de build y deploy de la API, utilizando uno o varios servicios cloud. Argumenta
 tu decisión sobre los servicios utilizados.
 
+    El framework the [Serverless](https://www.serverless.com/) permite mediante un archivo de configuración (e.g., yaml o json) definir los servicios Cloud que se necesiten. Funciona originalmente con AWS, aunque se encuentran en modo experimental con GCP. En fin, se optó por este framework porque es realtivamente sencillo de configurar para levantar los siguientes servicios cloud: AWS Lambda Function + AWS LAmbda Layers + AWS API GAteway y un Bucket de S3 para alojar los archivos. A pesar de poder deployar correctamente la librería de XGBoost supera el mínimo requerido de 250MB para una AWS Lambda Layer, por lo que en trabajos futuros se podría optar por otro modelo o utilizar AWS SageMaker el cual pareciera permitir hostear este modelo.
+
 7. Realiza pruebas de estrés a la API con el modelo expuesto con al menos 50.000 requests durante 45
 segundos. Para esto debes utilizar esta herramienta y presentar las métricas obtenidas. ¿Cómo podrías mejorar la performance de las pruebas anteriores?
+
+    Dado que no se quedo el modelo deployado, este paso no se ejecutó.

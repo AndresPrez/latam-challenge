@@ -8,7 +8,7 @@ DEFAULT_CLASSIFICATION_PARAMS = {
     'learning_rate': 0.001,
 }
 
-PATH_TO_MODEL = '/opt/latam/data/model.bin'
+PATH_TO_MODEL = '../data/model.bin'
 
 class Model:
     """    This class will be one responsible for modeling our data. XGboost Algorithm will be used
@@ -27,10 +27,9 @@ class Model:
         self.Y = Y
         self.dmatrix = xgb.DMatrix(X, label=Y)
 
-    def fit(self, save=True):
+    def fit(self):
         self.model.fit(self.X, self.Y)
         self.model_trained = True
-        if (save): self.save()
 
     def feature_importance(self):
         """
@@ -52,12 +51,14 @@ class Model:
     def predict(model: xgb.XGBRegressor, X: pd.DataFrame) -> pd.DataFrame:
         return model.predict(X)
     
-    def save(self) -> None:
-        self.model.save_model(PATH_TO_MODEL)
+    def save(self, path: str = None) -> None:
+        model_path = path if path is not None else PATH_TO_MODEL
+        self.model.save_model(model_path)
 
-    def load(self) -> None:
-        self.model.load_model(PATH_TO_MODEL)
+    def load(self, path: str = None) -> None:
+        model_path = path if path is not None else PATH_TO_MODEL
+        self.model.load_model(model_path)
         self.model_trained = True
-        print(f"Model loaded from {PATH_TO_MODEL}")
+        print(f"Model loaded from {model_path}")
 
 
