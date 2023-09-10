@@ -1,4 +1,5 @@
 fastapi
 mangum
 starlette
-xgboost
+pandas
+numpy

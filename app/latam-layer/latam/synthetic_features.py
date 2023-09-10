@@ -14,6 +14,9 @@ DAY_PERIODS: Dict[str, Tuple[Tuple[int, int]]] = {
     "noche": ((19, 0), (4, 59)),
 }
 
+RAW_DATASET_FILE = "../data/dataset.csv"
+SYNTHETIC_FEATURES_FILE = "../data/synthetic_features.csv"
+
 class SyntheticFeatures:
 
     def __init__(self, df:pd.DataFrame):
@@ -22,10 +25,17 @@ class SyntheticFeatures:
     def compute(self) -> pd.DataFrame:
         syntheticFeatures = pd.DataFrame()
 
-        syntheticFeatures['Temporada alta'] = SyntheticFeatures.isHighSeason(self.df['Fecha-I'])
-        syntheticFeatures['Diferencia en minutos'] = SyntheticFeatures.minutesDelay(self.df['Fecha-I'], self.df['Fecha-O'])
-        syntheticFeatures['Atraso menor'] = SyntheticFeatures.isMinorDelay(syntheticFeatures['Diferencia en minutos'])
-        syntheticFeatures['Periodo día'] = SyntheticFeatures.flightDayPeriod(self.df['Fecha-I'])
+        if "Fecha-I" in self.df:
+            syntheticFeatures['Temporada alta'] = SyntheticFeatures.isHighSeason(self.df['Fecha-I'])
+
+        if "Fecha-I" in self.df and "Fecha-O" in self.df:
+            syntheticFeatures['Diferencia en minutos'] = SyntheticFeatures.minutesDelay(self.df['Fecha-I'], self.df['Fecha-O'])
+
+        if "Diferencia en minutos" in syntheticFeatures:
+            syntheticFeatures['Atraso menor'] = SyntheticFeatures.isMinorDelay(syntheticFeatures['Diferencia en minutos'])
+        
+        if "Fecha-I" in self.df:
+            syntheticFeatures['Periodo día'] = SyntheticFeatures.flightDayPeriod(self.df['Fecha-I'])
 
         return syntheticFeatures
     
@@ -80,9 +90,9 @@ class SyntheticFeatures:
 
 if __name__ == "__main__":
     # Read the data from the provided csv file.
-    csv_data = pd.read_csv("./dataset.csv")
+    csv_data = pd.read_csv(RAW_DATASET_FILE)
     # Compute the synthetic features.
     sf = SyntheticFeatures(csv_data)
     sf_df = sf.compute()
     # Stores the synthetic features in a csv file.
-    sf_df.to_csv("./synthetic_features.csv", index=False)
+    sf_df.to_csv(SYNTHETIC_FEATURES_FILE, index=False)

@@ -20,6 +20,12 @@ plugins:
   # A little helper plugin to run your serverless application locally.
   - serverless-offline
 
+layers:
+  LatamPackage:
+    path: latam-layer
+    compatibleRuntimes:
+      - python3.10
+
 custom:
   # Custom options for the 'serverless-python-requirements' plugin.
   pythonRequirements:
@@ -36,15 +42,18 @@ functions:
       patterns:
         - 'service/**'
         - '!notebooks/**'
-        - '!data/**'
         - '!package.json'
         - '!package-lock.json'
         - '!venv/**'
+        - '!dist/**'
+        - '!build/**'
+        - '!*.egg-info/**'
         - '!node_modules/**'
     handler: lambda_handler.handler
     # Bundle the Python dependencies in a Lambda layer.
     layers:
       - { Ref: PythonRequirementsLambdaLayer }
+      - { Ref: LatamPackageLambdaLayer }
     # This tells the serverless framework to use AWS API Gateway v2,
     # and how to expose the API routes.
     events:

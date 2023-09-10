@@ -1,9 +1,12 @@
 import numpy as np
+import pickle
+from pathlib import Path
 from sklearn.model_selection import train_test_split
 from collections import Counter
 import pandas as pd
 from datetime import datetime
-from latam.service.statistics import robust_zscore, zscore
+from latam.synthetic_features import SyntheticFeatures
+from latam.statistics import robust_zscore, zscore
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
@@ -56,7 +59,8 @@ SUPPORTED_ANOMALY_SORES = [
     'zscore'
 ]
 
-ENCODED_DATASET_FILE = '../data/encoded_dataset.csv'
+CATEGORICAL_ENCODER_FILE = '/Users/andresperez/GitHub/AndresPrez/latam-challenge/app/latam/data/categorical_encoder.pickle'
+# CATEGORICAL_ENCODER_FILE = 'latam/data/categorical_encoder.pickle'
 
 TWO_PI = 2*np.pi
 
@@ -74,8 +78,8 @@ def target_encoding(cat_values: pd.Series, target_values: pd.Series) -> pd.Serie
     for cat_value in cat_count_map.keys():
         mean_target = np.round(df[df['cat'] == cat_value]['target'].mean(), 3)
         target_encoding[cat_value] = mean_target
-    encoded_values = [target_encoding[cat_value] for cat_value in cat_values]
-    return encoded_values
+    
+    return target_encoding
     # return cat_values.apply(lambda X: target_encoding[X])
 
 def split_date(date_values: datetime) -> pd.DataFrame:
@@ -112,34 +116,36 @@ class Dataset:
     """
 
     def __init__(
-            self, 
-            dataset_file: pd.DataFrame,
-            encoded_dataset_file: pd.DataFrame = None,
+            self,
+            dataset_file: pd.DataFrame = None,
+            dataset: pd.DataFrame = None
         ) -> None:
-        self.raw_dataset = None
-        self.dataset = None
+        self.dataset = dataset
         self.encoded_dataset = None
         self.anomalies_removed = False
-        if encoded_dataset_file:
-            self.encoded_dataset = pd.read_csv(encoded_dataset_file)
-            self.is_data_clean = True
-        
+
         if dataset_file:
             self.dataset = pd.read_csv(dataset_file)
-            self.raw_dataset = self.dataset
-            self.clean()
-        
+        elif dataset is not None:
+            self.dataset = dataset
         else:
-            raise Exception("Either encoded_dataset_file or dataset_file must be provided.")
+            raise Exception("Either dataset_file or dataset dataframe must be provided.")
+        
+    @staticmethod
+    def compute_synthetic_features(X:pd.DataFrame) -> None:
+        sf = SyntheticFeatures(X)
+        sf_df = sf.compute()
+        return pd.concat([sf_df, X], axis=1)
 
     def clean(self) -> None:
-        X = Dataset.get_relevant_columns(self.dataset)
+        X = Dataset.compute_synthetic_features(self.dataset)
+        X = Dataset.get_relevant_columns(X)
         X = Dataset.handle_missing_values(X)
         X = Dataset.parse(X)
         self.dataset = X
         self.is_data_clean = True
 
-    def encode(self, save_to_csv = True) -> None:
+    def encode(self, save = True) -> None:
         """
         This method will be responsible for encoding the columns into a better representation.
         """
@@ -149,9 +155,20 @@ class Dataset:
         categoric_cols = self.get_categoric_features()
         date_cols = self.get_date_features()
         newDataset = self.dataset.copy()
+        # We'll need to store the encoding map so that we can use it later for the API.
+        using_saved_encoding = self.load_cat_encodings()
         for cat_col in categoric_cols:
             # This encoding replaces the categorical value with the mean of the target for that value
-            newDataset[cat_col] = target_encoding(categoric_cols[cat_col], self.dataset[OUTPUT_COLUMNS[1]])
+            cat_col_values = categoric_cols[cat_col]
+
+            # If the encoding map is not available, compute it.
+            if using_saved_encoding:
+                target_encoder = self.cat_encoding_map[cat_col]
+            else:
+                target_encoder = target_encoding(cat_col_values, self.dataset[OUTPUT_COLUMNS[1]])
+
+            self.cat_encoding_map[cat_col] = target_encoder
+            newDataset[cat_col] = [target_encoder[cat_value] for cat_value in cat_col_values]
         
         for date_col in date_cols:
             # This encoding splits the date into its components (year, month, day, hour), so more columns are created.
@@ -161,23 +178,47 @@ class Dataset:
             
         self.encoded_dataset = newDataset
 
-        if save_to_csv:
-            self.encoded_dataset.to_csv(ENCODED_DATASET_FILE, index=False)
+        if not using_saved_encoding:
+            self.save_cat_encodings()
 
+    def save_cat_encodings(self) -> None:
+        with open(CATEGORICAL_ENCODER_FILE, 'wb') as file:
+            pickle.dump(self.cat_encoding_map, file)
+
+    def load_cat_encodings(self) -> bool:
+        """
+        Loads an existing categorical encoding map, if available.
+        """
+        if Path(CATEGORICAL_ENCODER_FILE).exists():
+            with open(CATEGORICAL_ENCODER_FILE, 'rb') as file:
+                self.cat_encoding_map = pickle.load(file)
+            print(f"Categorical encodings loaded from {CATEGORICAL_ENCODER_FILE}")
+            return True
+        else:
+            self.cat_encoding_map = {}
+            return False
+            
     def split_target(self, for_regression = True) -> (pd.DataFrame, pd.Series):
         """
         This method will be responsible for splitting the target column from the dataset.
         """
         
-        df_to_use = self.encoded_dataset
-        if for_regression:
-            # For regression use the numeric target column.
-            Y = df_to_use[OUTPUT_COLUMNS[1]]
-        else:
-            # For classification use the boolean target column.
-            Y = df_to_use[OUTPUT_COLUMNS[0]]
+        if self.encoded_dataset is None:
+            raise Exception("Data must be encoded first.")
+        
+        df_to_use = self.encoded_dataset.copy()
+        
+        target_column = OUTPUT_COLUMNS[1] if for_regression else OUTPUT_COLUMNS[0]
 
-        X = df_to_use.drop(columns=OUTPUT_COLUMNS)
+        X, Y = None, None
+        if target_column in df_to_use.columns:
+            Y = df_to_use[target_column]
+
+        X = df_to_use
+        try:
+            X.drop(columns=OUTPUT_COLUMNS, inplace=True)
+        except:
+            pass
         
         return X, Y
 
@@ -226,15 +267,32 @@ class Dataset:
         print(f"Reduced dataset by {percetange_removed}% after removing outliers")
 
         self.dataset = new_df
-        self.clean()
         
     @staticmethod
     def get_relevant_columns(X: pd.DataFrame) -> pd.DataFrame:
         """
             Only keep use the useful columns
         """
-        return X[INPUT_COLUMNS+OUTPUT_COLUMNS]
+        new_X = {}
+        relevant_columns = INPUT_COLUMNS+OUTPUT_COLUMNS
+        for column in relevant_columns:
+            if column in X:
+                new_X[column] = X[column].values
+                
+        return pd.DataFrame(new_X)
 
+    @staticmethod
+    def get_input_columns(X: pd.DataFrame) -> pd.DataFrame:
+        """
+            Only keep use the useful columns
+        """
+        new_X = {}
+        for column in INPUT_COLUMNS:
+            if column in X:
+                new_X[column] = X[column].values
+
+        return pd.DataFrame(new_X)
+    
     @staticmethod
     def handle_missing_values(X: pd.DataFrame) -> pd.DataFrame:
         """
@@ -251,10 +309,12 @@ class Dataset:
         # columns_config: Dict[str, Dict[str, any]]
     ) -> pd.DataFrame:
         newX = X.copy()
-        for key, value in COLUMNS_PARSER.items(): 
-            newX[key] = X[key].apply(value)
+        for key, value in COLUMNS_PARSER.items():
+            if key in X:
+                newX[key] = X[key].apply(value)
 
         for key, value in COLUMNS_DTYPE.items(): 
-            newX[key] = X[key].astype(value)
+            if key in X:
+                newX[key] = X[key].astype(value)
 
         return newX
