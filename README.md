@@ -7,7 +7,7 @@
 
 1. ¿Cómo se distribuyen los datos? ¿Qué te llama la atención o cuál es tu conclusión sobre esto?
 
-    Analásis exploratorio de datos en el notebook [analysis.ipynb](./latam/notebooks/analysis.ipynb). Específicamente
+    Analásis exploratorio de datos en el notebook [analysis.ipynb](./app/notebooks/analysis.ipynb). Específicamente
     en las secciones Anomaly Detection, Categorical Data y Feature Importance.
 
     En resumen, se observa que los datos siguen una distribución incial quasi normal, con valores altos de Skewness y Kurtosis.
