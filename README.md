@@ -29,7 +29,7 @@
 atraso de un vuelo. Siéntete libre de generar variables adicionales y/o complementar con variables
 externas.
     
-    Se generaron variables adicionales al codificar la variable de tipo fecha "Fecha-I" (fecha y hora programada del vuelo) utilizando nua técnica conocida como "Cyclica Encoding", especial para variables cuya naturaleza es cíclica como lo son el mes, día y hora de una fecha. A partir de esta variable se generaron entonces otras 4: año (no codificada) y las variables cíclicas de mes, día y hora. Estas fueron codificadas utilizando una sinusoide con periodicidad igual a la duración de cada variable.
+    En la clase Dataset del archivo [dataset.py](./app/latam-layer/latam/dataset.py) se generan variables adicionales al codificar la variable de tipo fecha "Fecha-I" (fecha y hora programada del vuelo) utilizando nua técnica conocida como "Cyclical Encoding", especial para variables cuya naturaleza es cíclica como lo son el mes, día y hora de una fecha. A partir de esta variable se generaron entonces otras 4: año (no codificada) y las variables cíclicas de mes, día y hora. Estas fueron codificadas utilizando una sinusoide con periodicidad igual a la duración de cada variable.
 
 4. Escoge el modelo que a tu criterio tenga una mejor performance, argumentando tu decisión.
 
